@@ -24,6 +24,36 @@
         .question-block { margin-bottom: 25px; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
         .question-block.invalid { border: 2px solid var(--error); background: #fef2f2; }
         
+        /* MODIFICATION: Larger Touch-Friendly Inputs for Time and Numbers */
+        input[type="time"], 
+        input[type="number"] {
+            display: block;             /* Forces it to its own line */
+            margin-top: 15px;
+            font-size: 1.2rem;          /* Larger text for iPad */
+            padding: 12px 16px; 
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            background: #ffffff;
+            color: var(--text);
+            width: 200px;               /* Fixed width so it looks consistent */
+            max-width: 100%;
+        }
+
+        /* Focus state for better visual feedback */
+        input[type="time"]:focus, 
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Hide the small spin arrows on number inputs for a cleaner look */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
         #password-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -46,9 +76,9 @@
             display: flex;
             flex-direction: row;
             justify-content: space-between;
-            align-items: stretch; /* Makes all boxes the same height */
-            gap: 5px;             /* Reduced gap to save space */
-            flex-wrap: nowrap;    /* FORCES them to stay on one line */
+            align-items: stretch; 
+            gap: 5px;             
+            flex-wrap: nowrap;    
             margin-top: 15px;
         }
 
@@ -60,19 +90,18 @@
             text-align: center;
             flex: 1;
             cursor: pointer;
-            font-size: 0.75rem;   /* Reduced font size slightly */
-            padding: 10px 2px;    /* Minimal side padding */
+            font-size: 0.75rem;   
+            padding: 10px 2px;    
             background: #f1f5f9;
             border-radius: 8px;
             border: 1px solid #e2e8f0;
-            min-width: 0;         /* Allows boxes to shrink below their content size */
-            word-wrap: break-word; /* Allows long words like "Extremely" to break if needed */
+            min-width: 0;         
+            word-wrap: break-word; 
         }
 
-        .options-group input {
-            margin-bottom: 8px;       /* Space between circle and label text */
+        .options-group input[type="radio"] {
+            margin-bottom: 8px;       
         }
-
 
         .btn-group { display: flex; gap: 10px; margin-top: 20px; }
         button { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
@@ -80,7 +109,18 @@
         .btn-prev { background: #94a3b8; color: white; }
         .btn-save { background: var(--success); color: white; }
         
-        input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        input[type="text"],
+        textarea.input-field {
+            width: 100%;
+            resize: vertical; /* Allows user to expand if they write a lot */
+            min-height: 80px;
+            padding: 12px;
+            font-size: 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
         .error-msg { color: var(--error); font-size: 0.8rem; display: none; margin-top: 5px; }
 
         /* Thank You Screen Styles */
@@ -368,6 +408,277 @@
             </div>
         </div>
 
+        <!-- PSQI -->
+        <div class="step">
+            <div
+                style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid var(--primary);">
+                <h3 style="margin-top: 0;">PITTSBURGH SLEEP QUALITY INDEX</h3>
+                <p>The following questions relate to your usual sleep habits during the past month only. Your answers should indicate the most accurate reply for the majority of days and nights in the past month. Please answer all questions</p>
+            </div>
+
+            <div class="question-block">
+                <label>During the past month, what time have you usually gone to bed at night?</label>
+                <input type="time" name="PSQI_q1" id="bed_time" class="input-field">
+            </div>
+
+            <div class="question-block">
+                <label>During the past month, how long (in minutes) has it usually taken you to fall asleep each night?</label>
+                <input type="number" name="PSQI_q2" id="sleep_latency" placeholder="Minutes" min="0" class="input-field">
+            </div>
+
+            <div class="question-block">
+                <label>During the past month, what time have you usually gotten up in the morning?</label>
+                <input type="time" name="PSQI_q3" id="wake_time" class="input-field">
+            </div>
+
+            <div class="question-block">
+                <label>During the past month, how many hours of actual sleep did you get at night?</label>
+                <p><small>(This may be different than the number of hours you spent in bed.)</small></p>
+                <input type="number" name="PSQI_q4" id="actual_sleep_hours" placeholder="Hours" min="0" max="24" step="0.5" class="input-field">
+            </div>
+
+            <div style="background: #f1f5f9; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border-left: 3px solid var(--primary);">
+                <h4 style="margin: 0; color: var(--text); font-size: 1.1rem;">During the past month, how often have you had trouble sleeping because you . . </h4>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>Cannot get to sleep within 30 minutes</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5a" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5a" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5a" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5a" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Wake up in the middle of the night or early morning</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5b" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5b" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5b" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5b" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Have to get up to use the bathroom</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5c" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5c" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5c" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5c" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Cannot breathe comfortably</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5d" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5d" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5d" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5d" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Cough or snore loudly</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5e" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5e" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5e" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5e" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Feel too cold</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5f" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5f" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5f" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5f" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Feel too hot</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5g" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5g" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5g" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5g" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Had bad dreams</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5h" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5h" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5h" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5h" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Had pain</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5i" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5i" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5i" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5i" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="false">
+                <p>Other reason(s), please describe:</p>
+                <textarea id="PSQI_q5j_text" name="PSQI_q5j_text" rows="2" placeholder="Describe the reason here..." class="input-field"></textarea>
+                
+                <p style="margin-top: 20px;">How often during the past month have you had trouble sleeping because of this?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5j" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5j" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5j" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5j" value="3"> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please describe the reason and select a frequency.</p>
+            </div>
+                        
+        
+            <div class="question-block" data-required="true">
+                <p>During the past month, how would you rate your sleep quality overall?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q6" value=3> Very good </label>
+                    <label><input type="radio" name="PSQI_q6" value=2> Fairly good </label>
+                    <label><input type="radio" name="PSQI_q6" value=1> Fairly bad </label>
+                    <label><input type="radio" name="PSQI_q6" value=0> Very bad </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>During the past month, how often have you taken medicine to help you sleep (prescribed or "over the counter")?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q7" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q7" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q7" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q7" value="3"> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>During the past month, how often have you had trouble staying awake while driving, eating meals, or engaging in social activity?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q8" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q8" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q8" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q8" value="3"> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>During the past month, how much of a problem has it been for you to keep up enough enthusiasm to get things done?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q9" value="0"> No problem at all </label>
+                    <label><input type="radio" name="PSQI_q9" value="1"> Only a very slight problem </label>
+                    <label><input type="radio" name="PSQI_q9" value="2"> Somewhat of a problem </label>
+                    <label><input type="radio" name="PSQI_q9" value="3"> A very big problem </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Do you have a bed partner or room mate?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10" value="0"> No bed partner or room mate </label>
+                    <label><input type="radio" name="PSQI_q10" value="1"> Partner/room mate in other room </label>
+                    <label><input type="radio" name="PSQI_q10" value="2"> Partner in same room, but not same bed </label>
+                    <label><input type="radio" name="PSQI_q10" value="3"> Partner in same bed </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+
+            <div style="background: #f1f5f9; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border-left: 3px solid var(--primary);">
+                <h4 style="margin: 0; color: var(--text); font-size: 1.1rem;">If you have a room mate or bed partner, ask him/her how often in the past month you have had . . . </h4>
+            </div>
+
+
+            <div class="question-block" data-required="false">
+                <p>Loud snoring</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10a" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q10a" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q10a" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q10a" value="3"> Three or more times a week </label>
+                </div>
+            </div>
+
+            <div class="question-block" data-required="false">
+                <p>Long pauses between breaths while asleep</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10b" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q10b" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q10b" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q10b" value="3"> Three or more times a week </label>
+                </div>
+            </div>
+            
+            <div class="question-block" data-required="false">
+                <p>Legs twitching or jerking while you sleep</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10c" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q10c" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q10c" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q10c" value="3"> Three or more times a week </label>
+                </div>
+            </div>
+
+            <div class="question-block" data-required="false">
+                <p>Episodes of disorientation or confusion during sleep</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10d" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q10d" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q10d" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q10d" value="3"> Three or more times a week </label>
+                </div>
+            </div>
+
+            <div class="question-block" data-required="false">
+                <p>Other restlessness while you sleep; please describe:</p>
+                <textarea id="PSQI_q5j_text" name="PSQI_q10e_text" rows="2" placeholder="Describe the reason here..." class="input-field"></textarea>
+                
+                <p style="margin-top: 20px;">How often during the past month have you had trouble sleeping because of this?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10e" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q10e" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q10e" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q10e" value="3"> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please describe the reason and select a frequency.</p>
+            </div>
+
+
+            <div class="btn-group">
+                <button type="button" class="btn-prev" onclick="changeStep(-1)">Previous</button>
+                <button type="button" class="btn-next" onclick="validateAndNext()">Next</button>
+            </div>
+        </div>
 
         <!-- BFS -->
         <div class="step">
