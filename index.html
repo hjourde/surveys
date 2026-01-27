@@ -1683,6 +1683,7 @@
     const steps = document.querySelectorAll(".step");
     const progressBar = document.getElementById("progress-bar");
     const startTime = Date.now();
+    const startTimeString = new Date().toLocaleTimeString();
 
     function updateProgress() {
         const percent = (currentStep / (steps.length - 1)) * 100;
@@ -1743,14 +1744,13 @@
         const date = new Date().toISOString().split('T')[0];
         const duration = Math.floor((Date.now() - startTime) / 1000);
         
-        let csvContent = "data:text/csv;charset=utf-8,Participant_ID,Date,Duration_Sec\n";
-        csvContent += `${pID},${date},${duration}\n\nQuestion,Response\n`;
+        let csvContent = "data:text/csv;charset=utf-8,Participant_ID,Date,Start_Time,Duration_Sec\n";
+        csvContent += `${pID},${date},${startTimeString},${duration}\n\nQuestion,Response\n`;
         
         for (let [key, value] of formData.entries()) {
             csvContent += `${key},${value.toString().replace(/,/g, " ")}\n`;
         }
 
-        // Trigger Download
         const link = document.createElement("a");
         link.setAttribute("href", encodeURI(csvContent));
         link.setAttribute("download", `${pID}_${date}_Results.csv`);
@@ -1758,12 +1758,10 @@
         link.click();
         document.body.removeChild(link);
 
-        // SHOW THANK YOU SCREEN
         document.getElementById('researchForm').style.display = 'none';
         document.getElementById('ui-header').style.display = 'none';
         document.getElementById('thank-you-screen').style.display = 'block';
     }
-    
     updateProgress();
 </script>
 
