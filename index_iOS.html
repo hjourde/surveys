@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Study</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --error: #dc2626; --success: #059669; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
+        .container { 
+            max-width: 900px;
+            width: 100%; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        .progress-container { background: #e2e8f0; height: 8px; border-radius: 4px; margin-bottom: 30px; }
+        #progress-bar { background: var(--primary); height: 100%; width: 0%; border-radius: 4px; transition: 0.3s; }
+        
+        .step { display: none; } 
+        .step.active { display: block; } 
+        
+        .question-block { margin-bottom: 25px; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        .question-block.invalid { border: 2px solid var(--error); background: #fef2f2; }
+        
+        /* MODIFICATION: Larger Touch-Friendly Inputs for Time and Numbers */
+        input[type="time"], 
+        input[type="number"] {
+            display: block;             /* Forces it to its own line */
+            margin-top: 15px;
+            font-size: 1.2rem;          /* Larger text for iPad */
+            padding: 12px 16px; 
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            background: #ffffff;
+            color: var(--text);
+            width: 200px;               /* Fixed width so it looks consistent */
+            max-width: 100%;
+        }
+
+        /* Focus state for better visual feedback */
+        input[type="time"]:focus, 
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Hide the small spin arrows on number inputs for a cleaner look */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #password-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .pw-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .options-group {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: stretch; 
+            gap: 5px;             
+            flex-wrap: nowrap;    
+            margin-top: 15px;
+        }
+
+        .options-group label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            flex: 1;
+            cursor: pointer;
+            font-size: 0.75rem;   
+            padding: 10px 2px;    
+            background: #f1f5f9;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            min-width: 0;         
+            word-wrap: break-word; 
+        }
+
+        .options-group input[type="radio"] {
+            margin-bottom: 8px;       
+        }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+        .btn-next { background: var(--primary); color: white; }
+        .btn-prev { background: #94a3b8; color: white; }
+        .btn-save { background: var(--success); color: white; }
+        
+        input[type="text"],
+        textarea.input-field {
+            width: 100%;
+            resize: vertical; /* Allows user to expand if they write a lot */
+            min-height: 80px;
+            padding: 12px;
+            font-size: 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .error-msg { color: var(--error); font-size: 0.8rem; display: none; margin-top: 5px; }
+
+        /* Thank You Screen Styles */
+        #thank-you-screen { text-align: center; display: none; padding: 40px 0; }
+        .check-icon { font-size: 50px; color: var(--success); margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div id="password-overlay">
+    <div class="pw-box">
+        <h3>Research Access</h3>
+        <p>Please enter the access code provided by the researcher.</p>
+        <input type="password" id="pw-input" style="padding: 10px; width: 200px; border: 1px solid #cbd5e1; border-radius: 4px;">
+        <br><br>
+        <button onclick="checkPassword()" class="btn-next" style="width: 100%;">Enter</button>
+        <p id="pw-error" style="color: red; display: none; font-size: 0.8rem; margin-top: 10px;">Incorrect code.</p>
+    </div>
+</div>
+
+<div class="container">
+    <div id="ui-header">
+        <div class="progress-container"><div id="progress-bar"></div></div>
+    </div>
+    
+    <form id="researchForm">
+        <!-- Log Participant ID -->
+        <div class="step active">
+            <h2>Welcome</h2>
+
+            <div class="question-block" data-required="true">
+                <p>Please enter your Participant ID:</p>
+                <input type="text" id="pID" name="participant_id" placeholder="e.g. P101">
+                <p class="error-msg">This field is required.</p>
+            </div>
+
+            <div class="btn-group">
+                <button type="button" class="btn-next" onclick="validateAndNext()">Start</button>
+            </div>
+        </div>
+
+        <!-- RU-SATED -->
+        <div class="step">
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid var(--primary);">
+                <h3 style="margin-top: 0;">Sleep Health</h3>
+                <p>The following statements refer to your sleep during the past one month. Please indicate the best response for each statement. “Night” refers to the time you get your longest sleep of the day, which may not be when it is dark out (for instance, if you work night shifts). “Day” refers to the time of day when you are usually awake, which may not be when it is light out (for instance, if you work night shifts). “Sleep” refers to the longest period of sleep you have in a 24-hour day.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>1. I go to sleep and wake up at about the same time every day.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="RU-SATED_freq_q1" value=0> Never</label>
+                    <label><input type="radio" name="RU-SATED_freq_q1" value=1> Rarely</label>
+                    <label><input type="radio" name="RU-SATED_freq_q1" value=2> Sometimes</label>
+                    <label><input type="radio" name="RU-SATED_freq_q1" value=3> Often</label>
+                    <label><input type="radio" name="RU-SATED_freq_q1" value=4> Always</label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>2. I sleep 7 – 9 hours per night.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="RU-SATED_freq_q2" value=0> Never</label>
+                    <label><input type="radio" name="RU-SATED_freq_q2" value=1> Rarely</label>
+                    <label><input type="radio" name="RU-SATED_freq_q2" value=2> Sometimes</label>
+                    <label><input type="radio" name="RU-SATED_freq_q2" value=3> Often</label>
+                    <label><input type="radio" name="RU-SATED_freq_q2" value=4> Always</label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>3. The middle of my sleep period is between 2:00 a.m. and 4:00 a.m.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="RU-SATED_freq_q3" value=0> Never</label>
+                    <label><input type="radio" name="RU-SATED_freq_q3" value=1> Rarely</label>
+                    <label><input type="radio" name="RU-SATED_freq_q3" value=2> Sometimes</label>
+                    <label><input type="radio" name="RU-SATED_freq_q3" value=3> Often</label>
+                    <label><input type="radio" name="RU-SATED_freq_q3" value=4> Always</label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>4. I am awake for less than 30 minutes between the time I go to bed and the time I get out of bed.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="RU-SATED_freq_q4" value=0> Never</label>
+                    <label><input type="radio" name="RU-SATED_freq_q4" value=1> Rarely</label>
+                    <label><input type="radio" name="RU-SATED_freq_q4" value=2> Sometimes</label>
+                    <label><input type="radio" name="RU-SATED_freq_q4" value=3> Often</label>
+                    <label><input type="radio" name="RU-SATED_freq_q4" value=4> Always</label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>5. I stay awake all day without dozing.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="RU-SATED_freq_q5" value=0> Never</label>
+                    <label><input type="radio" name="RU-SATED_freq_q5" value=1> Rarely</label>
+                    <label><input type="radio" name="RU-SATED_freq_q5" value=2> Sometimes</label>
+                    <label><input type="radio" name="RU-SATED_freq_q5" value=3> Often</label>
+                    <label><input type="radio" name="RU-SATED_freq_q5" value=4> Always</label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>6. I am satisfied with my sleep.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="RU-SATED_freq_q6" value=0> Never</label>
+                    <label><input type="radio" name="RU-SATED_freq_q6" value=1> Rarely</label>
+                    <label><input type="radio" name="RU-SATED_freq_q6" value=2> Sometimes</label>
+                    <label><input type="radio" name="RU-SATED_freq_q6" value=3> Often</label>
+                    <label><input type="radio" name="RU-SATED_freq_q6" value=4> Always</label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="btn-group">
+                <button type="button" class="btn-prev" onclick="changeStep(-1)">Previous</button>
+                <button type="button" class="btn-next" onclick="validateAndNext()">Next</button>
+            </div>
+        </div>
+
+        <!-- OGINSKA -->
+        <div class="step">
+            <div
+                style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid var(--primary);">
+                <h3 style="margin-top: 0;">Chronotype</h3>
+                <p>This questionnaire concerns your preferences and habits regarding the level of activation at various times of
+                    day. Please, tell whether you agree with the following statements.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>I feel I can think the best in the morning.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_ME-1" value=1> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_ME-1" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_ME-1" value=5> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>I can work equally easily in the day as in the night.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_DI-2" value=1> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_DI-2" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_DI-2" value=5> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>I feel drowsy for a long time after awakening.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_ME-3" value=5> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_ME-3" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_ME-3" value=1> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>There are times of day when I would prefer to avoid any work.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_DI-4" value=5> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_DI-4" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_DI-4" value=1> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>If I were to study anything by myself, I would rather do it in the evening.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_ME-5" value=5> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_ME-5" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_ME-5" value=1> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>Regardless of the time of day, I feel almost the same, as to mood and efficiency.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_DI- 6" value=1> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_DI- 6" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_DI- 6" value=5> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>I like to get up earlier then necessary, e.g. in order to prepare things for the whole day.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_ME-7" value=1> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_ME-7" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_ME-7" value=5> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>When my usual sleep time comes, I can’t overcome sleepiness, my eyes shut by themselves.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_DI-8" value=5> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_DI-8" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_DI-8" value=1> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>My work goes better in the afternoon than before noon.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_ME-9" value=5> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_ME-9" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_ME-9" value=1> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>I am usually in an excellent mood in the morning.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_ME-10" value=1> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_ME-10" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_ME-10" value=5> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>I am able to concentrate at any time of day or night, if I have something to do.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_DI-11" value=1> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_DI-11" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_DI-11" value=5> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>I am in my best form in the morning, in the course of the day my energy runs out.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_ME-12" value=1> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_ME-12" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_ME-12" value=5> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>If something (somebody) wakes me up at a time unusual for me, I can’t ‘‘come to myself’’ for a long time.
+                </p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_DI-13" value=5> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_DI-13" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_DI-13" value=1> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>II feel sluggish in the morning and I warm up slowly during the day. </p>
+                <div class="options-group">
+                    <label><input type="radio" name="OGINSKA_ME-14" value=5> Yes, true </label>
+                    <label><input type="radio" name="OGINSKA_ME-14" value=3> It depends, difficult to say </label>
+                    <label><input type="radio" name="OGINSKA_ME-14" value=1> No, untrue </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+        
+        
+        
+        
+            <div class="btn-group">
+                <button type="button" class="btn-prev" onclick="changeStep(-1)">Previous</button>
+                <button type="button" class="btn-next" onclick="validateAndNext()">Next</button>
+            </div>
+        </div>
+
+        <!-- PSQI -->
+        <div class="step">
+            <div
+                style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid var(--primary);">
+                <h3 style="margin-top: 0;">PITTSBURGH SLEEP QUALITY INDEX</h3>
+                <p>The following questions relate to your usual sleep habits during the past month only. Your answers should indicate the most accurate reply for the majority of days and nights in the past month. Please answer all questions</p>
+            </div>
+
+            <div class="question-block">
+                <label>During the past month, what time have you usually gone to bed at night?</label>
+                <input type="time" name="PSQI_q1" id="bed_time" class="input-field">
+            </div>
+
+            <div class="question-block">
+                <label>During the past month, how long (in minutes) has it usually taken you to fall asleep each night?</label>
+                <input type="number" name="PSQI_q2" id="sleep_latency" placeholder="Minutes" min="0" class="input-field">
+            </div>
+
+            <div class="question-block">
+                <label>During the past month, what time have you usually gotten up in the morning?</label>
+                <input type="time" name="PSQI_q3" id="wake_time" class="input-field">
+            </div>
+
+            <div class="question-block">
+                <label>During the past month, how many hours of actual sleep did you get at night?</label>
+                <p><small>(This may be different than the number of hours you spent in bed.)</small></p>
+                <input type="number" name="PSQI_q4" id="actual_sleep_hours" placeholder="Hours" min="0" max="24" step="0.5" class="input-field">
+            </div>
+
+            <div style="background: #f1f5f9; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border-left: 3px solid var(--primary);">
+                <h4 style="margin: 0; color: var(--text); font-size: 1.1rem;">During the past month, how often have you had trouble sleeping because you . . </h4>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>Cannot get to sleep within 30 minutes</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5a" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5a" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5a" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5a" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Wake up in the middle of the night or early morning</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5b" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5b" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5b" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5b" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Have to get up to use the bathroom</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5c" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5c" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5c" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5c" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Cannot breathe comfortably</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5d" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5d" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5d" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5d" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Cough or snore loudly</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5e" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5e" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5e" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5e" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Feel too cold</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5f" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5f" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5f" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5f" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Feel too hot</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5g" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5g" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5g" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5g" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Had bad dreams</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5h" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5h" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5h" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5h" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Had pain</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5i" value=0> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5i" value=1> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5i" value=2> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5i" value=3> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="false">
+                <p>Other reason(s), please describe:</p>
+                <textarea id="PSQI_q5j_text" name="PSQI_q5j_text" rows="2" placeholder="Describe the reason here..." class="input-field"></textarea>
+                
+                <p style="margin-top: 20px;">How often during the past month have you had trouble sleeping because of this?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q5j" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q5j" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q5j" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q5j" value="3"> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please describe the reason and select a frequency.</p>
+            </div>
+                        
+        
+            <div class="question-block" data-required="true">
+                <p>During the past month, how would you rate your sleep quality overall?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q6" value=3> Very good </label>
+                    <label><input type="radio" name="PSQI_q6" value=2> Fairly good </label>
+                    <label><input type="radio" name="PSQI_q6" value=1> Fairly bad </label>
+                    <label><input type="radio" name="PSQI_q6" value=0> Very bad </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>During the past month, how often have you taken medicine to help you sleep (prescribed or "over the counter")?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q7" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q7" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q7" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q7" value="3"> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>During the past month, how often have you had trouble staying awake while driving, eating meals, or engaging in social activity?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q8" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q8" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q8" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q8" value="3"> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>During the past month, how much of a problem has it been for you to keep up enough enthusiasm to get things done?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q9" value="0"> No problem at all </label>
+                    <label><input type="radio" name="PSQI_q9" value="1"> Only a very slight problem </label>
+                    <label><input type="radio" name="PSQI_q9" value="2"> Somewhat of a problem </label>
+                    <label><input type="radio" name="PSQI_q9" value="3"> A very big problem </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Do you have a bed partner or room mate?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10" value="0"> No bed partner or room mate </label>
+                    <label><input type="radio" name="PSQI_q10" value="1"> Partner/room mate in other room </label>
+                    <label><input type="radio" name="PSQI_q10" value="2"> Partner in same room, but not same bed </label>
+                    <label><input type="radio" name="PSQI_q10" value="3"> Partner in same bed </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+
+            <div style="background: #f1f5f9; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border-left: 3px solid var(--primary);">
+                <h4 style="margin: 0; color: var(--text); font-size: 1.1rem;">If you have a room mate or bed partner, ask him/her how often in the past month you have had . . . </h4>
+            </div>
+
+
+            <div class="question-block" data-required="false">
+                <p>Loud snoring</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10a" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q10a" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q10a" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q10a" value="3"> Three or more times a week </label>
+                </div>
+            </div>
+
+            <div class="question-block" data-required="false">
+                <p>Long pauses between breaths while asleep</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10b" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q10b" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q10b" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q10b" value="3"> Three or more times a week </label>
+                </div>
+            </div>
+            
+            <div class="question-block" data-required="false">
+                <p>Legs twitching or jerking while you sleep</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10c" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q10c" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q10c" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q10c" value="3"> Three or more times a week </label>
+                </div>
+            </div>
+
+            <div class="question-block" data-required="false">
+                <p>Episodes of disorientation or confusion during sleep</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10d" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q10d" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q10d" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q10d" value="3"> Three or more times a week </label>
+                </div>
+            </div>
+
+            <div class="question-block" data-required="false">
+                <p>Other restlessness while you sleep; please describe:</p>
+                <textarea id="PSQI_q5j_text" name="PSQI_q10e_text" rows="2" placeholder="Describe the reason here..." class="input-field"></textarea>
+                
+                <p style="margin-top: 20px;">How often during the past month have you had trouble sleeping because of this?</p>
+                <div class="options-group">
+                    <label><input type="radio" name="PSQI_q10e" value="0"> Not during the past month </label>
+                    <label><input type="radio" name="PSQI_q10e" value="1"> Less than once a week </label>
+                    <label><input type="radio" name="PSQI_q10e" value="2"> Once or twice a week </label>
+                    <label><input type="radio" name="PSQI_q10e" value="3"> Three or more times a week </label>
+                </div>
+                <p class="error-msg">Please describe the reason and select a frequency.</p>
+            </div>
+
+
+            <div class="btn-group">
+                <button type="button" class="btn-prev" onclick="changeStep(-1)">Previous</button>
+                <button type="button" class="btn-next" onclick="validateAndNext()">Next</button>
+            </div>
+        </div>
+
+        <!-- BFS -->
+        <div class="step">
+            <div
+                style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid var(--primary);">
+                <h3 style="margin-top: 0;">Fatigue</h3>
+                <p>Please indicate how likely you are to require rest in the following situations. Even if you have not done some of these activities recently, try work out how fatigued you would feel in these situations. Please note that fatigue is a feeling of exhaustion, a lack of physical or mental energy, only to be relieved by rest. This feeling is different from drowsiness, which is the almost irresistible need for sleep in the absence of external stimulation</p>
+            </div>
+
+            <div style="background: #f1f5f9; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border-left: 3px solid var(--primary);">
+                <h4 style="margin: 0; color: var(--text); font-size: 1.1rem;">Mental Fatigue</h4>
+            </div>
+
+        
+            <div class="question-block" data-required="true">
+                <p>After having a conversation with another person.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="BFS_q1" value=0> Very Unlikely </label>
+                    <label><input type="radio" name="BFS_q1" value=1> Unlikely </label>
+                    <label><input type="radio" name="BFS_q1" value=2> Likely </label>
+                    <label><input type="radio" name="BFS_q1" value=3> Almost Sure </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>After doing a passive mental activity (e.g. watching TV, ...).</p>
+                <div class="options-group">
+                    <label><input type="radio" name="BFS_q2" value=0> Very Unlikely </label>
+                    <label><input type="radio" name="BFS_q2" value=1> Unlikely </label>
+                    <label><input type="radio" name="BFS_q2" value=2> Likely </label>
+                    <label><input type="radio" name="BFS_q2" value=3> Almost Sure </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>After performing a focused intellectual activity (e.g. reading a book, ...).</p>
+                <div class="options-group">
+                    <label><input type="radio" name="BFS_q3" value=0> Very Unlikely </label>
+                    <label><input type="radio" name="BFS_q3" value=1> Unlikely </label>
+                    <label><input type="radio" name="BFS_q3" value=2> Likely </label>
+                    <label><input type="radio" name="BFS_q3" value=3> Almost Sure </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>After an intense intellectual activity requiring sustained concentration (e.g. studying, calculating, drafting a document, passing an exam, ...).</p>
+                <div class="options-group">
+                    <label><input type="radio" name="BFS_q4" value=0> Very Unlikely </label>
+                    <label><input type="radio" name="BFS_q4" value=1> Unlikely </label>
+                    <label><input type="radio" name="BFS_q4" value=2> Likely </label>
+                    <label><input type="radio" name="BFS_q4" value=3> Almost Sure </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+            
+            <div style="background: #f1f5f9; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border-left: 3px solid var(--primary);">
+                <h4 style="margin: 0; color: var(--text); font-size: 1.1rem;">Physical Fatigue</h4>
+            </div>
+        
+        
+            <div class="question-block" data-required="true">
+                <p>After grooming yourself.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="BFS_q5" value=0> Very Unlikely </label>
+                    <label><input type="radio" name="BFS_q5" value=1> Unlikely </label>
+                    <label><input type="radio" name="BFS_q5" value=2> Likely </label>
+                    <label><input type="radio" name="BFS_q5" value=3> Almost Sure </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>After climbing one flight of stairs.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="BFS_q6" value=0> Very Unlikely </label>
+                    <label><input type="radio" name="BFS_q6" value=1> Unlikely </label>
+                    <label><input type="radio" name="BFS_q6" value=2> Likely </label>
+                    <label><input type="radio" name="BFS_q6" value=3> Almost Sure </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>After performing a household task (e.g. washing dishes, vacuum, cleaning, grocery shopping, gardening, ...).</p>
+                <div class="options-group">
+                    <label><input type="radio" name="BFS_q7" value=0> Very Unlikely </label>
+                    <label><input type="radio" name="BFS_q7" value=1> Unlikely </label>
+                    <label><input type="radio" name="BFS_q7" value=2> Likely </label>
+                    <label><input type="radio" name="BFS_q7" value=3> Almost Sure </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>After an intense physical activity (e.g. sports, ...).</p>
+                <div class="options-group">
+                    <label><input type="radio" name="BFS_q8" value=0> Very Unlikely </label>
+                    <label><input type="radio" name="BFS_q8" value=1> Unlikely </label>
+                    <label><input type="radio" name="BFS_q8" value=2> Likely </label>
+                    <label><input type="radio" name="BFS_q8" value=3> Almost Sure </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+        
+            <div class="btn-group">
+                <button type="button" class="btn-prev" onclick="changeStep(-1)">Previous</button>
+                <button type="button" class="btn-next" onclick="validateAndNext()">Next</button>
+            </div>
+        </div>
+
+        <!-- DOSPERT -->
+        <!-- WARNING: This needs to be the final questionnaire as it triggers the export to CSV -->
+        <div class="step">
+            <div
+                style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid var(--primary);">
+                <h3 style="margin-top: 0;">Risk taking</h3>
+                <p>For each of the following statements, please indicate the likelihood that you would engage in the described activity or behavior if you were to find yourself in that situation.</p>
+            </div>
+        
+            <div class="question-block" data-required="true">
+                <p>Admitting that your tastes are different from those of a friend.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q1_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q1_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q1_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q1_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q1_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q1_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q1_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Going camping in the wilderness.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q2_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q2_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q2_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q2_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q2_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q2_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q2_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Betting a day’s income at the horse races.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q3_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q3_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q3_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q3_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q3_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q3_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q3_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Investing 10% of your annual income in a moderate growth mutual fund.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q4_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q4_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q4_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q4_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q4_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q4_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q4_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Drinking heavily at a social function.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q5_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q5_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q5_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q5_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q5_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q5_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q5_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Taking some questionable deductions on your income tax return.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q6_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q6_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q6_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q6_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q6_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q6_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q6_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Disagreeing with an authority figure on a major issue.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q7_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q7_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q7_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q7_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q7_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q7_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q7_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Betting a day’s income at a high-stake poker game.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q8_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q8_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q8_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q8_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q8_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q8_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q8_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Having an affair with a married man/woman.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q9_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q9_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q9_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q9_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q9_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q9_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q9_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Passing off somebody else’s work as your own.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q10_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q10_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q10_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q10_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q10_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q10_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q10_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Going down a ski run that is beyond your ability.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q11_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q11_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q11_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q11_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q11_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q11_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q11_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Investing 5% of your annual income in a very speculative stock.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q12_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q12_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q12_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q12_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q12_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q12_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q12_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Going whitewater rafting at high water in the spring.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q13_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q13_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q13_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q13_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q13_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q13_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q13_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Betting a day’s income on the outcome of a sporting event.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q14_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q14_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q14_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q14_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q14_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q14_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q14_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Engaging in unprotected sex.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q15_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q15_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q15_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q15_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q15_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q15_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q15_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Revealing a friend’s secret to someone else.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q16_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q16_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q16_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q16_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q16_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q16_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q16_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Driving a car without wearing a seat belt.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q17_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q17_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q17_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q17_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q17_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q17_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q17_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Investing 10% of your annual income in a new business venture.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q18_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q18_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q18_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q18_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q18_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q18_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q18_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Taking a skydiving class.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q19_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q19_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q19_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q19_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q19_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q19_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q19_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Riding a motorcycle without a helmet.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q20_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q20_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q20_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q20_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q20_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q20_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q20_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Choosing a career that you truly enjoy over a more secure one.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q21_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q21_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q21_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q21_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q21_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q21_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q21_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Speaking your mind about an unpopular issue in a meeting at work.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q22_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q22_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q22_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q22_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q22_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q22_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q22_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Sunbathing without sunscreen.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q23_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q23_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q23_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q23_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q23_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q23_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q23_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Bungee jumping off a tall bridge.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q24_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q24_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q24_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q24_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q24_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q24_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q24_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Piloting a small plane.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q25_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q25_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q25_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q25_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q25_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q25_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q25_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Walking home alone at night in an unsafe area of town.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q26_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q26_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q26_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q26_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q26_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q26_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q26_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Moving to a city far away from your extended family.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q27_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q27_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q27_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q27_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q27_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q27_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q27_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Starting a new career in your mid-thirties.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q28_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q28_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q28_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q28_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q28_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q28_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q28_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Leaving your young children alone at home while running an errand.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q29_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q29_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q29_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q29_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q29_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q29_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q29_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Not returning a wallet you found that contains $200.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q30_RT" value=1> Extremely Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q30_RT" value=2> Moderately Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q30_RT" value=3> Somewhat Unlikely </label>
+                    <label><input type="radio" name="DOSPERT_q30_RT" value=4> Not sure </label>
+                    <label><input type="radio" name="DOSPERT_q30_RT" value=5> Somewhat Likely </label>
+                    <label><input type="radio" name="DOSPERT_q30_RT" value=6> Moderately Likely </label>
+                    <label><input type="radio" name="DOSPERT_q30_RT" value=7> Extremely Likely </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+        
+        
+            <div
+                style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid var(--primary);">
+                <h3 style="margin-top: 0;">Risk perception</h3>
+                <p>People often see some risk in situations that contain uncertainty about what the outcome or consequences will be and for which there is the possibility of negative consequences. However, riskiness is a very personal and intuitive notion, and we are interested in your gut level assessment of how risky each situation or behavior is.
+                    For each of the following statements, please indicate how risky you perceive each situation.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Admitting that your tastes are different from those of a friend.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q1_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q1_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q1_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q1_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q1_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q1_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q1_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Going camping in the wilderness.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q2_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q2_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q2_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q2_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q2_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q2_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q2_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Betting a day’s income at the horse races.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q3_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q3_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q3_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q3_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q3_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q3_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q3_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Investing 10% of your annual income in a moderate growth mutual fund.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q4_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q4_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q4_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q4_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q4_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q4_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q4_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Drinking heavily at a social function.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q5_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q5_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q5_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q5_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q5_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q5_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q5_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Taking some questionable deductions on your income tax return.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q6_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q6_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q6_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q6_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q6_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q6_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q6_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Disagreeing with an authority figure on a major issue.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q7_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q7_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q7_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q7_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q7_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q7_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q7_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Betting a day’s income at a high-stake poker game.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q8_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q8_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q8_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q8_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q8_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q8_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q8_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Having an affair with a married man/woman.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q9_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q9_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q9_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q9_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q9_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q9_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q9_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Passing off somebody else’s work as your own.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q10_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q10_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q10_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q10_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q10_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q10_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q10_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Going down a ski run that is beyond your ability.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q11_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q11_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q11_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q11_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q11_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q11_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q11_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Investing 5% of your annual income in a very speculative stock.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q12_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q12_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q12_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q12_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q12_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q12_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q12_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Going whitewater rafting at high water in the spring.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q13_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q13_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q13_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q13_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q13_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q13_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q13_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Betting a day’s income on the outcome of a sporting event.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q14_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q14_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q14_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q14_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q14_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q14_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q14_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Engaging in unprotected sex.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q15_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q15_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q15_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q15_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q15_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q15_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q15_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Revealing a friend’s secret to someone else.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q16_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q16_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q16_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q16_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q16_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q16_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q16_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Driving a car without wearing a seat belt.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q17_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q17_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q17_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q17_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q17_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q17_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q17_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Investing 10% of your annual income in a new business venture.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q18_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q18_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q18_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q18_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q18_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q18_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q18_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Taking a skydiving class.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q19_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q19_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q19_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q19_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q19_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q19_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q19_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Riding a motorcycle without a helmet.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q20_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q20_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q20_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q20_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q20_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q20_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q20_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Choosing a career that you truly enjoy over a more secure one.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q21_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q21_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q21_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q21_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q21_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q21_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q21_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Speaking your mind about an unpopular issue in a meeting at work.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q22_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q22_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q22_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q22_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q22_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q22_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q22_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Sunbathing without sunscreen.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q23_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q23_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q23_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q23_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q23_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q23_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q23_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Bungee jumping off a tall bridge.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q24_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q24_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q24_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q24_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q24_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q24_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q24_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Piloting a small plane.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q25_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q25_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q25_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q25_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q25_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q25_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q25_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Walking home alone at night in an unsafe area of town.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q26_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q26_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q26_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q26_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q26_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q26_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q26_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+
+            <div class="question-block" data-required="true">
+                <p>Moving to a city far away from your extended family.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q27_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q27_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q27_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q27_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q27_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q27_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q27_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Starting a new career in your mid-thirties.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q28_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q28_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q28_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q28_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q28_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q28_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q28_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Leaving your young children alone at home while running an errand.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q29_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q29_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q29_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q29_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q29_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q29_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q29_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+
+            <div class="question-block" data-required="true">
+                <p>Not returning a wallet you found that contains $200.</p>
+                <div class="options-group">
+                    <label><input type="radio" name="DOSPERT_q30_RP" value=1> Not at all Risky </label>
+                    <label><input type="radio" name="DOSPERT_q30_RP" value=2> Slightly Risky </label>
+                    <label><input type="radio" name="DOSPERT_q30_RP" value=3> Somewhat Risky </label>
+                    <label><input type="radio" name="DOSPERT_q30_RP" value=4> Moderately Risky </label>
+                    <label><input type="radio" name="DOSPERT_q30_RP" value=5> Risky </label>
+                    <label><input type="radio" name="DOSPERT_q30_RP" value=6> Very Risky </label>
+                    <label><input type="radio" name="DOSPERT_q30_RP" value=7> Extremely Risky </label>
+                </div>
+                <p class="error-msg">Please select an option.</p>
+            </div>
+        
+        
+            <div class="btn-group">
+                <button type="button" class="btn-prev" onclick="changeStep(-1)">Previous</button>
+                <button type="button" class="btn-save" onclick="validateAndFinish()">Finish & Download</button>
+            </div>
+        </div>
+
+
+    </form>
+
+    <div id="thank-you-screen">
+        <div class="check-icon">✓</div>
+        <h2>Thank You!</h2>
+        <p>Your results have been generated and downloaded.</p>
+        <p style="color: #64748b; font-size: 0.9rem;">You can now close this window or return the file to the researcher.</p>
+    </div>
+</div>
+
+<script>
+    let currentStep = 0;
+    const steps = document.querySelectorAll(".step");
+    const progressBar = document.getElementById("progress-bar");
+    const startTime = Date.now();
+    const startTimeString = new Date().toLocaleTimeString();
+
+    function updateProgress() {
+        const percent = (currentStep / (steps.length - 1)) * 100;
+        progressBar.style.width = percent + "%";
+    }
+
+    function checkPassword() {
+        const code = document.getElementById('pw-input').value;
+        const correctCode = "Research2026"; 
+        
+        if (code === correctCode) {
+            document.getElementById('password-overlay').style.display = 'none';
+        } else {
+            document.getElementById('pw-error').style.display = 'block';
+        }
+    }
+
+    function isStepValid() {
+        const activeStep = steps[currentStep];
+        const requiredBlocks = activeStep.querySelectorAll('.question-block[data-required="true"]');
+        let allValid = true;
+
+        requiredBlocks.forEach(block => {
+            let isValid = false;
+            const textInput = block.querySelector('input[type="text"], textarea');
+            if (textInput && textInput.value.trim() !== "") isValid = true;
+
+            const radios = block.querySelectorAll('input[type="radio"]');
+            if (radios.length > 0 && Array.from(radios).some(r => r.checked)) isValid = true;
+
+            if (!isValid) {
+                block.classList.add('invalid');
+                block.querySelector('.error-msg').style.display = 'block';
+                allValid = false;
+            } else {
+                block.classList.remove('invalid');
+                block.querySelector('.error-msg').style.display = 'none';
+            }
+        });
+        return allValid;
+    }
+
+    function validateAndNext() { if (isStepValid()) changeStep(1); }
+    function validateAndFinish() { if (isStepValid()) exportData(); }
+
+    function changeStep(stepChange) {
+        steps[currentStep].classList.remove("active");
+        currentStep += stepChange;
+        steps[currentStep].classList.add("active");
+        updateProgress();
+        window.scrollTo(0, 0);
+    }
+
+    
+    function exportData() {
+        const form = document.getElementById('researchForm');
+        const formData = new FormData(form);
+        const pID = document.getElementById('pID').value.trim() || "Anonymous";
+        const date = new Date().toISOString().split('T')[0];
+        const duration = Math.floor((Date.now() - startTime) / 1000);
+        
+        // Construction du contenu
+        let csvString = "Participant_,Date,Start_Time,Duration_Sec\n";
+        csvString += `${pID},${date},${startTimeString},${duration}\n\nQuestion,Response\n`;
+        
+        for (let [key, value] of formData.entries()) {
+            csvString += `${key},${value.toString().replace(/,/g, " ")}\n`;
+        }
+
+        // --- Optimisation pour Safari Mobile ---
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        // On s'assure que le nom finit bien par .csv
+        link.download = `${pID}_${date}_Results.csv`;
+        
+        document.body.appendChild(link);
+        link.click();
+        
+        // Nettoyage après un court délai
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+            document.body.removeChild(link);
+        }, 500);
+
+        // UI Update
+        document.getElementById('researchForm').style.display = 'none';
+        document.getElementById('ui-header').style.display = 'none';
+        document.getElementById('thank-you-screen').style.display = 'block';
+    }
+
+    
+    updateProgress();
+</script>
+</body>
+</html>
